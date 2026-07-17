@@ -10,6 +10,8 @@ if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
 
 const db = new Pool(dbConfig);
 
+let initPromise = null;
+
 // Helper to provide similar syntax to better-sqlite3 for easier refactoring, but async
 db.prepare = function(text) {
     // Replace all ? with $1, $2, etc. (basic replacement, assumes no ? inside strings)
@@ -18,14 +20,17 @@ db.prepare = function(text) {
     
     return {
         get: async (...args) => {
+            if (initPromise) await initPromise;
             const result = await db.query(pgText, args);
             return result.rows[0] || null;
         },
         all: async (...args) => {
+            if (initPromise) await initPromise;
             const result = await db.query(pgText, args);
             return result.rows;
         },
         run: async (...args) => {
+            if (initPromise) await initPromise;
             const result = await db.query(pgText, args);
             return { changes: result.rowCount, lastInsertRowid: null };
         }
@@ -164,11 +169,12 @@ async function initDB() {
     }
 }
 
-initDB();
+initPromise = initDB();
 
 // We export the pool directly but decorated with the async prepare helper
 db.transaction = function(callback) {
     return async function() {
+        if (initPromise) await initPromise;
         const client = await db.connect();
         let transactionError = null;
         try {
