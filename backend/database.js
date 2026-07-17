@@ -1,8 +1,14 @@
 const { Pool } = require('pg');
 
-const db = new Pool({
+const dbConfig = {
     connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/aiquiz'
-});
+};
+
+if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    dbConfig.ssl = { rejectUnauthorized: false };
+}
+
+const db = new Pool(dbConfig);
 
 // Helper to provide similar syntax to better-sqlite3 for easier refactoring, but async
 db.prepare = function(text) {
@@ -142,7 +148,7 @@ async function initDB() {
         // Seed admin user
         const { rows } = await db.query('SELECT id FROM users WHERE role = $1', ['admin']);
         if (rows.length === 0) {
-            const bcrypt = require('bcrypt');
+            const bcrypt = require('bcryptjs');
             const crypto = require('crypto');
             const hash = bcrypt.hashSync('admin123', 10);
             await db.query(
