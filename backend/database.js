@@ -11,6 +11,7 @@ if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
 const db = new Pool(dbConfig);
 
 let initPromise = null;
+let initError = null;
 
 // Helper to provide similar syntax to better-sqlite3 for easier refactoring, but async
 db.prepare = function(text) {
@@ -21,16 +22,19 @@ db.prepare = function(text) {
     return {
         get: async (...args) => {
             if (initPromise) await initPromise;
+            if (initError) throw new Error("Database Init Failed: " + initError.message);
             const result = await db.query(pgText, args);
             return result.rows[0] || null;
         },
         all: async (...args) => {
             if (initPromise) await initPromise;
+            if (initError) throw new Error("Database Init Failed: " + initError.message);
             const result = await db.query(pgText, args);
             return result.rows;
         },
         run: async (...args) => {
             if (initPromise) await initPromise;
+            if (initError) throw new Error("Database Init Failed: " + initError.message);
             const result = await db.query(pgText, args);
             return { changes: result.rowCount, lastInsertRowid: null };
         }
@@ -166,7 +170,7 @@ async function initDB() {
         console.log("Database initialized automatically.");
     } catch (err) {
         console.error("Database initialization failed:", err);
-        throw err;
+        initError = err;
     }
 }
 
@@ -176,6 +180,7 @@ initPromise = initDB();
 db.transaction = function(callback) {
     return async function() {
         if (initPromise) await initPromise;
+        if (initError) throw new Error("Database Init Failed: " + initError.message);
         const client = await db.connect();
         let transactionError = null;
         try {
