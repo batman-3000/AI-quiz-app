@@ -166,6 +166,7 @@ async function initDB() {
         console.log("Database initialized automatically.");
     } catch (err) {
         console.error("Database initialization failed:", err);
+        throw err;
     }
 }
 

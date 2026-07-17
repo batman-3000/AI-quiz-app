@@ -37,7 +37,7 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'Email already exists' });
         }
         console.error(err);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error: ' + err.message, stack: err.stack, details: err });
     }
 });
 
@@ -70,7 +70,7 @@ router.post('/login', async (req, res) => {
         res.json({ message: 'Login successful', token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error: ' + err.message, stack: err.stack, details: err });
     }
 });
 
