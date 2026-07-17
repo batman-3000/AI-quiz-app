@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Quiz Generator — Premium Quiz Platform</title>
+    <!-- Geist + Inter fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./src/style.css">
+    <style>
+      [x-cloak] { display: none !important; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  </head>
+  <body class="bg-warm-light text-neutral-800 dark:bg-warm-dark dark:text-neutral-100 font-sans min-h-full flex flex-col antialiased selection:bg-amber-100 dark:selection:bg-amber-900/30" x-data="app()" x-init="initApp()">
+    
+    <!-- Header/Navbar -->
+    <nav class="fixed top-0 left-0 right-0 z-40 bg-warm-light/80 dark:bg-warm-dark/80 backdrop-blur-md border-b border-warm-borderLight dark:border-warm-borderDark transition-colors duration-300">
+      <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div class="flex items-center space-x-3 cursor-pointer select-none" @dblclick="openAdminModal = true">
+          <!-- Logo Icon -->
+          <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+          </div>
+          <span class="text-xl font-bold font-display tracking-tight text-neutral-900 dark:text-white">AI QuizGen</span>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+          <!-- Dark Mode Toggle -->
+          <button @click="toggleDarkMode()" class="p-2 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark text-neutral-600 dark:text-neutral-300 hover:text-amber-500 dark:hover:text-amber-400 hover:border-amber-400/40 transition-all duration-200" aria-label="Toggle Theme">
+            <!-- Moon icon -->
+            <svg x-show="!darkMode" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            <!-- Sun icon -->
+            <svg x-show="darkMode" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-cloak><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
+          </button>
+
+          <!-- User Session Status -->
+          <template x-if="user">
+            <div class="flex items-center space-x-3 pl-3 border-l border-warm-borderLight dark:border-warm-borderDark">
+              <div class="hidden sm:block text-right">
+                <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider" x-text="user.role"></div>
+                <div class="text-sm font-medium text-neutral-900 dark:text-neutral-100" x-text="user.name"></div>
+              </div>
+              <button @click="logout()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-all duration-200">
+                Log Out
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="flex-grow pt-24 pb-16 px-6 max-w-7xl mx-auto w-full flex flex-col justify-start">
+      
+      <!-- AUTHENTICATION VIEW -->
+      <div x-show="view === 'auth'" x-cloak class="max-w-md mx-auto w-full my-auto py-8">
+        <div class="glass-card rounded-3xl p-8 border border-warm-borderLight dark:border-warm-borderDark shadow-xl bg-white/40 dark:bg-warm-mutedDark/40">
+          
+          <button x-show="authMode !== 'select_role'" @click="authMode = 'select_role'" class="mb-6 px-4 py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 rounded-full text-xs font-bold hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors flex items-center w-fit">
+            &larr; Back to Role Selection
+          </button>
+
+          <div class="text-center mb-8">
+            <h2 class="text-3xl font-extrabold font-display tracking-tight text-neutral-900 dark:text-white" x-text="authMode === 'login' ? 'Welcome back' : (authMode === 'register' ? 'Create an account' : 'Who are you?')"></h2>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-2" x-text="authMode === 'login' ? 'Sign in to access your classroom and quizzes' : (authMode === 'register' ? 'Start generating and taking quizzes in seconds' : 'Select your role to continue')"></p>
+          </div>
+
+          <!-- Role Selection Cards -->
+          <template x-if="authMode === 'select_role'">
+            <div class="grid grid-cols-1 gap-4">
+              <div @click="authMode = 'login'" class="cursor-pointer group flex items-center p-5 rounded-2xl border-2 border-warm-borderLight dark:border-warm-borderDark hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all">
+                <div class="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                </div>
+                <div class="ml-4">
+                  <h3 class="text-lg font-bold text-neutral-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400">Faculty & Admin</h3>
+                  <p class="text-xs text-neutral-500 mt-0.5">Host quizzes and manage classrooms</p>
+                </div>
+              </div>
+
+              <div @click="view = 'student_join'" class="cursor-pointer group flex items-center p-5 rounded-2xl border-2 border-warm-borderLight dark:border-warm-borderDark hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all">
+                <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
+                </div>
+                <div class="ml-4">
+                  <h3 class="text-lg font-bold text-neutral-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400">Student</h3>
+                  <p class="text-xs text-neutral-500 mt-0.5">Join a live quiz with a class code</p>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <form @submit.prevent="submitAuth" class="space-y-4" x-show="authMode === 'login' || authMode === 'register'">
+            <template x-if="authMode === 'register'">
+              <div class="space-y-4">
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Full Name</label>
+                  <input type="text" x-model="authForm.name" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-light dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 outline-none transition-all duration-200" placeholder="Jane Doe" required>
+                </div>
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Username</label>
+                  <input type="text" x-model="authForm.username" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-light dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 outline-none transition-all duration-200" placeholder="janedoe" required>
+                </div>
+              </div>
+            </template>
+
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                <span x-text="authMode === 'login' ? 'Email or Username' : 'Email Address'"></span>
+              </label>
+              <input :type="authMode === 'login' ? 'text' : 'email'" x-model="authForm.email" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-light dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 outline-none transition-all duration-200" :placeholder="authMode === 'login' ? 'jane@example.com or janedoe' : 'jane@example.com'" required>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Password</label>
+              <div class="relative">
+                <input :type="showPassword ? 'text' : 'password'" x-model="authForm.password" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-light dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 outline-none transition-all duration-200 pr-10" placeholder="••••••••" required>
+                <button type="button" @click="showPassword = !showPassword" class="absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200">
+                  <svg x-show="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                  <svg x-show="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" :disabled="loading" class="w-full mt-6 py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl font-semibold shadow-lg shadow-orange-500/20 active:scale-[0.98] hover:-translate-y-[1px] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
+              <span x-text="authMode === 'login' ? 'Sign In' : 'Create Account'"></span>
+              <svg x-show="loading" class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            </button>
+
+            <div class="relative py-2 mt-4">
+              <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-warm-borderLight dark:border-warm-borderDark"></div></div>
+              <div class="relative flex justify-center text-xs"><span class="bg-[#FCFAF7] dark:bg-[#3E3C3A] px-2 text-neutral-500 rounded">Or continue with</span></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pb-2">
+              <button type="button" @click="alert('Mock Google Login triggered')" class="flex items-center justify-center w-full px-4 py-2 border border-warm-borderLight dark:border-warm-borderDark rounded-xl hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark transition-colors text-sm font-semibold">
+                <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Google
+              </button>
+              <button type="button" @click="alert('Mock Microsoft Login triggered')" class="flex items-center justify-center w-full px-4 py-2 border border-warm-borderLight dark:border-warm-borderDark rounded-xl hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark transition-colors text-sm font-semibold">
+                <svg class="w-4 h-4 mr-2" viewBox="0 0 21 21"><path fill="#f25022" d="M0 0h10v10H0z"/><path fill="#7fba00" d="M11 0h10v10H11z"/><path fill="#00a4ef" d="M0 11h10v10H0z"/><path fill="#ffb900" d="M11 11h10v10H11z"/></svg>
+                Microsoft
+              </button>
+            </div>
+             <div class="mt-6 text-center border-t border-warm-borderLight dark:border-warm-borderDark pt-6">
+              <button @click="authMode = authMode === 'login' ? 'register' : 'login'" class="text-sm font-semibold text-amber-600 dark:text-amber-400 hover:underline">
+                <span x-text="authMode === 'login' ? 'New here? Create an account' : 'Already have an account? Sign in'"></span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- STUDENT GUEST JOIN VIEW -->
+      <div x-show="view === 'student_join'" x-cloak class="max-w-md mx-auto w-full my-auto py-8">
+        <div class="glass-card rounded-3xl p-8 border border-emerald-500/30 dark:border-emerald-500/20 shadow-xl bg-white/40 dark:bg-warm-mutedDark/40">
+          
+          <button @click="view = 'auth'; authMode = 'select_role'" class="mb-6 px-4 py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 rounded-full text-xs font-bold hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors flex items-center w-fit">
+            &larr; Back to login
+          </button>
+
+          <div class="text-center mb-8">
+            <div class="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l9-5-9-5-9 5 9 5z"></path></svg>
+            </div>
+            <h2 class="text-3xl font-extrabold font-display tracking-tight text-neutral-900 dark:text-white">Join Quiz</h2>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-2">Enter your name and the live class code</p>
+          </div>
+
+          <form @submit.prevent="joinClassGuest" class="space-y-5">
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Display Name</label>
+              <input type="text" x-model="studentGuest.name" class="w-full px-4 py-3 rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 focus:ring-2 focus:ring-emerald-500 outline-none transition-all duration-200" placeholder="e.g. John Smith" required>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Join Code</label>
+              <input type="text" x-model="studentGuest.code" :class="studentJoinError ? 'border-rose-500 bg-rose-50/50 focus:ring-rose-500' : 'border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 focus:ring-emerald-500'" class="w-full px-4 py-3 rounded-xl border font-mono text-center tracking-widest uppercase focus:ring-2 outline-none transition-all duration-200" placeholder="6-CHAR" required>
+              <p x-show="studentJoinError" class="text-xs font-bold text-rose-500 mt-1" x-text="studentJoinError" x-transition></p>
+            </div>
+
+            <button type="submit" class="w-full mt-6 py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/20 active:scale-[0.98] hover:-translate-y-[1px] transition-all duration-150">
+              Enter Quiz Session &rarr;
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ADMIN DASHBOARD VIEW -->
+      <div x-show="view === 'admin_dashboard'" x-cloak class="space-y-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-warm-borderLight dark:border-warm-borderDark pb-6">
+          <div>
+            <h1 class="text-3xl font-extrabold font-display text-neutral-900 dark:text-white">Admin Dashboard</h1>
+            <p class="text-neutral-500 dark:text-neutral-400 mt-1">Manage quizzes, faculties, and database.</p>
+          </div>
+        </div>
+
+        <!-- Admin Tabs -->
+        <div class="flex space-x-2 border-b border-warm-borderLight dark:border-warm-borderDark">
+          <button @click="adminTab = 'quizzes'" :class="adminTab === 'quizzes' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'" class="px-4 py-2 border-b-2 font-bold text-sm transition-colors">All Quizzes</button>
+          <button @click="adminTab = 'faculties'; loadFaculties();" :class="adminTab === 'faculties' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'" class="px-4 py-2 border-b-2 font-bold text-sm transition-colors">Manage Faculty</button>
+          <button @click="adminTab = 'database'" :class="adminTab === 'database' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'" class="px-4 py-2 border-b-2 font-bold text-sm transition-colors">Database Access</button>
+        </div>
+
+        <div x-show="adminTab === 'quizzes'" class="glass-card rounded-3xl border border-warm-borderLight dark:border-warm-borderDark overflow-x-auto">
+          <table class="w-full min-w-[800px] text-left border-collapse">
+            <thead>
+              <tr class="bg-warm-mutedLight dark:bg-warm-mutedDark/40 border-b border-warm-borderLight dark:border-warm-borderDark">
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Quiz Title</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Class & Subject</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Host</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Questions</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Quiz Code</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Status</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="quiz in adminQuizzes" :key="quiz.id">
+                <tr class="border-b border-warm-borderLight dark:border-warm-borderDark hover:bg-warm-mutedLight/50 dark:hover:bg-warm-mutedDark/20 transition-colors">
+                  <td class="py-4 px-6 font-semibold text-neutral-900 dark:text-white" x-text="quiz.title"></td>
+                  <td class="py-4 px-6 text-sm text-neutral-600 dark:text-neutral-400">
+                    <span x-text="quiz.class_name"></span><br>
+                    <span class="text-xs opacity-70" x-text="quiz.subject_name"></span>
+                  </td>
+                  <td class="py-4 px-6 text-sm text-neutral-600 dark:text-neutral-400" x-text="quiz.host_name"></td>
+                  <td class="py-4 px-6 text-sm font-medium text-neutral-700 dark:text-neutral-300" x-text="quiz.question_count + ' qs'"></td>
+                  <td class="py-4 px-6 text-sm font-mono font-bold text-amber-600 dark:text-amber-400" x-text="quiz.join_code"></td>
+                  <td class="py-4 px-6">
+                    <span class="px-2 py-1 text-xs font-bold rounded-md"
+                      :class="quiz.status === 'published' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'"
+                      x-text="quiz.status"></span>
+                  </td>
+                  <td class="py-4 px-6 text-right space-x-2">
+                    <button @click="openCopyModal(quiz)" class="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">Copy</button>
+                    <button @click="openEditQuiz(quiz)" class="text-xs font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300">Edit</button>
+                    <button @click="deleteQuiz(quiz.id)" class="text-xs font-bold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">Delete</button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="adminQuizzes.length === 0">
+                <td colspan="7" class="py-8 text-center text-sm text-neutral-500">No quizzes generated across the platform yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Faculties Tab -->
+        <div x-show="adminTab === 'faculties'" class="glass-card rounded-3xl border border-warm-borderLight dark:border-warm-borderDark overflow-x-auto">
+          <table class="w-full min-w-[800px] text-left border-collapse">
+            <thead>
+              <tr class="bg-warm-mutedLight dark:bg-warm-mutedDark/40 border-b border-warm-borderLight dark:border-warm-borderDark">
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500">Name</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500">Email</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500">Username</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500">Status</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="faculty in adminFaculties" :key="faculty.id">
+                <tr class="border-b border-warm-borderLight dark:border-warm-borderDark">
+                  <td class="py-4 px-6 font-semibold" x-text="faculty.name"></td>
+                  <td class="py-4 px-6 text-sm" x-text="faculty.email"></td>
+                  <td class="py-4 px-6 text-sm font-mono text-amber-600" x-text="'@' + faculty.username"></td>
+                  <td class="py-4 px-6">
+                    <span class="px-2 py-1 text-xs font-bold rounded-md" :class="faculty.status === 'pending' ? 'bg-orange-100 text-orange-700' : (faculty.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700')" x-text="faculty.status"></span>
+                  </td>
+                  <td class="py-4 px-6 text-right space-x-2">
+                    <button x-show="faculty.status === 'pending'" @click="approveFaculty(faculty.id)" class="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700">Approve</button>
+                    <button x-show="faculty.status === 'pending'" @click="rejectFaculty(faculty.id)" class="px-3 py-1 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700">Reject</button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Database Tab -->
+        <div x-show="adminTab === 'database'" class="glass-card rounded-3xl p-6 border border-warm-borderLight dark:border-warm-borderDark">
+          <h2 class="text-xl font-bold mb-4">Raw Database Query</h2>
+          <textarea x-model="adminDbQuery" class="w-full h-32 p-4 rounded-xl border border-warm-borderLight bg-warm-light dark:bg-warm-mutedDark font-mono text-sm focus:ring-2 focus:ring-amber-500 outline-none" placeholder="SELECT * FROM users;"></textarea>
+          <button @click="runAdminQuery" class="mt-4 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-sm transition-all duration-200">Run Query</button>
+          
+          <div x-show="adminDbResult" class="mt-6">
+            <h3 class="font-bold text-sm mb-2 text-neutral-500">Query Result:</h3>
+            <div class="overflow-x-auto bg-neutral-900 text-neutral-300 p-4 rounded-xl max-h-96 overflow-y-auto">
+              <pre class="text-xs font-mono" x-text="JSON.stringify(adminDbResult, null, 2)"></pre>
+            </div>
+          </div>
+          <div x-show="adminDbError" class="mt-6 p-4 bg-rose-100 text-rose-700 rounded-xl font-mono text-sm" x-text="adminDbError"></div>
+        </div>
+
+      </div>
+
+      <!-- FACULTY DASHBOARD VIEW -->
+      <div x-show="view === 'faculty_dashboard'" x-cloak class="space-y-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-warm-borderLight dark:border-warm-borderDark pb-6">
+          <div>
+            <h1 class="text-3xl font-extrabold font-display text-neutral-900 dark:text-white">Faculty Dashboard</h1>
+            <p class="text-neutral-500 dark:text-neutral-400 mt-1">Deploy, monitor, and generate learning assets.</p>
+          </div>
+          <div class="flex gap-2 sm:self-center">
+            <button @click="openJoinClassModal = true" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold shadow-sm transition-all duration-200 active:scale-[0.98]">
+              Join Class / Quiz
+            </button>
+            <button @click="openCreateClassModal = true" class="px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 shadow-sm transition-all duration-200 active:scale-[0.98]">
+              + New Class
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <template x-for="cls in classes" :key="cls.id">
+            <div class="glass-card rounded-2xl p-6 hover:shadow-md border border-warm-borderLight dark:border-warm-borderDark hover:border-amber-400/40 dark:hover:border-amber-400/40 transition-all duration-300 group cursor-pointer flex flex-col justify-between" @click="selectClass(cls)">
+              <div>
+                <span class="text-xs uppercase tracking-wider font-bold text-neutral-400">Classroom</span>
+                <h3 class="text-xl font-bold font-display text-neutral-900 dark:text-white mt-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors" x-text="cls.name"></h3>
+              </div>
+              <div class="flex items-center justify-between mt-6 pt-4 border-t border-warm-borderLight/60 dark:border-warm-borderDark/60">
+                <div class="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                  Join Code: <span class="font-mono bg-warm-mutedLight dark:bg-warm-mutedDark border border-warm-borderLight dark:border-warm-borderDark px-2 py-0.5 rounded-md text-amber-600 dark:text-amber-400 font-bold" x-text="cls.join_code"></span>
+                </div>
+                <span class="text-xs font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform">Manage &rarr;</span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- FACULTY CLASS DETAIL VIEW -->
+      <div x-show="view === 'faculty_class'" x-cloak class="space-y-8">
+        <button @click="view = 'faculty_dashboard'" class="px-4 py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 rounded-full text-xs font-bold hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors flex items-center w-fit space-x-1">
+          <span>&larr; Back to dashboard</span>
+        </button>
+
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-warm-borderLight dark:border-warm-borderDark pb-6 gap-4">
+          <div>
+            <h1 class="text-3xl font-extrabold font-display text-neutral-900 dark:text-white" x-text="selectedClass?.name"></h1>
+            <p class="text-sm text-neutral-500 mt-1">Class Code: <span class="font-mono font-semibold text-amber-600 dark:text-amber-400" x-text="selectedClass?.join_code"></span></p>
+          </div>
+          <!-- Trigger Manual Backup (Premium Security Utility) -->
+          <button @click="triggerBackup()" class="px-4 py-2 border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark text-xs font-bold rounded-xl hover:bg-warm-borderLight dark:hover:bg-warm-borderDark/60 transition-colors flex items-center space-x-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+            <span>Backup Classroom Database</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <!-- Sidebar: Subjects -->
+          <div class="col-span-1 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs uppercase tracking-wider font-bold text-neutral-400">Class Subjects</h3>
+              <button @click="openAddSubjectModal = true" class="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline">+ Add Subject</button>
+            </div>
+            <div class="space-y-2">
+              <template x-for="sub in subjects" :key="sub.id">
+                <div @click="selectSubject(sub)" :class="selectedSubject?.id === sub.id ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400' : 'bg-white/40 dark:bg-warm-mutedDark/40 border-warm-borderLight dark:border-warm-borderDark'" class="p-4 rounded-xl border hover:border-amber-400/40 cursor-pointer transition-all duration-200">
+                  <h4 class="font-bold font-display" x-text="sub.name"></h4>
+                </div>
+              </template>
+              <div x-show="subjects.length === 0" class="text-sm text-neutral-400 p-6 text-center border border-dashed rounded-xl border-warm-borderLight dark:border-warm-borderDark">No subjects yet. Create one to begin.</div>
+            </div>
+          </div>
+
+          <!-- Main Area: Quizzes in Subject -->
+          <div class="col-span-2 space-y-6" x-show="selectedSubject" x-cloak>
+            <div class="flex items-center justify-between bg-white/40 dark:bg-warm-mutedDark/40 p-5 rounded-2xl border border-warm-borderLight dark:border-warm-borderDark">
+              <div>
+                <span class="text-xs uppercase tracking-wider font-bold text-neutral-400">Active Material</span>
+                <h3 class="text-xl font-bold font-display text-neutral-900 dark:text-white" x-text="selectedSubject?.name"></h3>
+              </div>
+              <button @click="openGenerateModal = true" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl font-bold text-sm shadow-md shadow-orange-500/20 transition-all duration-150 active:scale-[0.98]">
+                Generate AI Quiz
+              </button>
+            </div>
+
+            <!-- Quiz List -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <template x-for="quiz in quizzes" :key="quiz.id">
+                <div class="glass-card p-5 rounded-2xl border border-warm-borderLight dark:border-warm-borderDark flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-start justify-between">
+                      <h4 class="font-bold text-lg text-neutral-900 dark:text-white" x-text="quiz.title"></h4>
+                      <span class="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400" x-text="quiz.status"></span>
+                    </div>
+                    <div class="text-xs font-mono font-semibold text-amber-600 dark:text-amber-400 mt-1" x-show="quiz.host_name" x-text="'Hosted by @' + quiz.host_name"></div>
+                    <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-2 line-clamp-2" x-text="quiz.description || 'No description provided.'"></p>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-warm-borderLight/60 dark:border-warm-borderDark/60 text-xs font-semibold text-neutral-400">
+                    <span class="flex items-center space-x-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                      <span x-text="quiz.timer_minutes + ' min timer'"></span>
+                    </span>
+                    <span class="flex items-center space-x-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                      <span x-text="(quiz.question_count || 0) + ' Qs'"></span>
+                    </span>
+                    <span class="flex items-center space-x-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded ml-auto">
+                      <span>Quiz Code:</span>
+                      <span class="font-mono font-bold tracking-wider" x-text="quiz.join_code"></span>
+                    </span>
+                  </div>
+                  <div class="flex space-x-2 mt-4">
+                    <button @click="openCopyModal(quiz)" class="flex-1 py-2 text-xs font-bold bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 rounded-xl transition-colors">Copy</button>
+                    <button @click="openEditQuiz(quiz)" class="flex-1 py-2 text-xs font-bold bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 rounded-xl transition-colors">Edit</button>
+                    <button @click="deleteQuiz(quiz.id)" class="flex-1 py-2 text-xs font-bold bg-red-500/10 text-red-700 hover:bg-red-500/20 rounded-xl transition-colors">Delete</button>
+                  </div>
+                  <div class="mt-2" x-show="quiz.status === 'published'">
+                    <button @click="startLeaderboard(quiz.id)" class="w-full py-2 text-xs font-bold bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 rounded-xl transition-colors">Live Leaderboard</button>
+                  </div>
+                </div>
+              </template>
+              <div x-show="quizzes.length === 0" class="col-span-2 py-12 text-center border-2 border-dashed border-warm-borderLight dark:border-warm-borderDark rounded-2xl">
+                <svg class="w-10 h-10 mx-auto text-neutral-300 dark:text-neutral-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <p class="text-neutral-500 dark:text-neutral-400 font-medium">No quizzes generated yet</p>
+                <p class="text-xs text-neutral-400 mt-1">Upload a lecture note or study paper PDF to automatically extract quizzes.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STUDENT DASHBOARD VIEW -->
+      <div x-show="view === 'student_dashboard'" x-cloak class="space-y-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-warm-borderLight dark:border-warm-borderDark pb-6">
+          <div>
+            <h1 class="text-3xl font-extrabold font-display text-neutral-900 dark:text-white">Student Dashboard</h1>
+            <p class="text-neutral-500 dark:text-neutral-400 mt-1">Join classrooms and take live assessments.</p>
+          </div>
+          <button @click="openJoinClassModal = true" class="sm:self-center px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 shadow-sm transition-all duration-200 active:scale-[0.98]">
+            + Join Class
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <template x-for="cls in classes" :key="cls.id">
+            <div class="glass-card rounded-2xl p-6 hover:shadow-md border border-warm-borderLight dark:border-warm-borderDark hover:border-amber-400/40 dark:hover:border-amber-400/40 transition-all duration-300 group cursor-pointer flex flex-col justify-between" @click="selectClassStudent(cls)">
+              <div>
+                <span class="text-xs uppercase tracking-wider font-bold text-neutral-400">Classroom Joined</span>
+                <h3 class="text-xl font-bold font-display text-neutral-900 dark:text-white mt-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors" x-text="cls.name"></h3>
+              </div>
+              <div class="flex justify-end mt-8 pt-4 border-t border-warm-borderLight/60 dark:border-warm-borderDark/60">
+                <span class="text-xs font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform">Enter Classroom &rarr;</span>
+              </div>
+            </div>
+          </template>
+          <div x-show="classes.length === 0" class="col-span-3 py-16 text-center border-2 border-dashed border-warm-borderLight dark:border-warm-borderDark rounded-2xl">
+            <p class="text-neutral-500 dark:text-neutral-400 font-medium">You haven't joined any classes yet</p>
+            <p class="text-xs text-neutral-400 mt-1">Get a class code from your instructor and click "Join Class".</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- STUDENT CLASS DETAIL (QUIZ LIST) VIEW -->
+      <div x-show="view === 'student_class'" x-cloak class="space-y-8">
+        <template x-if="user?.role === 'student'">
+          <button @click="view = 'student_dashboard'" class="px-4 py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 rounded-full text-xs font-bold hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors flex items-center w-fit space-x-1">
+            <span>&larr; Back to dashboard</span>
+          </button>
+        </template>
+        <template x-if="user?.role === 'guest'">
+          <button @click="logout()" class="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center w-fit space-x-1">
+            <span>&larr; Leave Class</span>
+          </button>
+        </template>
+
+        <div class="border-b border-warm-borderLight dark:border-warm-borderDark pb-6">
+          <h1 class="text-3xl font-extrabold font-display text-neutral-900 dark:text-white" x-text="selectedClass?.name"></h1>
+          <p class="text-sm text-neutral-500 mt-1">Available active quizzes in this class</p>
+        </div>
+
+        <div class="space-y-4">
+          <h3 class="text-xs uppercase tracking-wider font-bold text-neutral-400">Class Quizzes</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <template x-for="quiz in studentQuizzes" :key="quiz.id">
+              <div class="glass-card p-6 rounded-2xl border border-warm-borderLight dark:border-warm-borderDark hover:border-amber-400/40 dark:hover:border-amber-400/40 transition-all duration-300 flex flex-col justify-between">
+                <div>
+                  <h4 class="font-bold text-lg text-neutral-900 dark:text-white" x-text="quiz.title"></h4>
+                  <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-2 line-clamp-3" x-text="quiz.description || 'No description provided.'"></p>
+                </div>
+                <div class="flex items-center justify-between mt-6 pt-4 border-t border-warm-borderLight/60 dark:border-warm-borderDark/60">
+                  <div class="flex items-center text-xs font-semibold text-neutral-400 space-x-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span x-text="quiz.timer_minutes + ' min timer'"></span>
+                  </div>
+                  <button @click="startQuiz(quiz.id)" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-sm transition-all duration-150 active:scale-[0.98]">
+                    Start Quiz
+                  </button>
+                </div>
+              </div>
+            </template>
+            <div x-show="studentQuizzes.length === 0" class="col-span-3 py-12 text-center border border-dashed border-warm-borderLight dark:border-warm-borderDark rounded-2xl text-neutral-500 dark:text-neutral-400">
+              No quizzes available in this class.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVE QUIZ ATTEMPT VIEW -->
+      <div x-show="view === 'quiz_attempt'" x-cloak class="max-w-2xl mx-auto w-full space-y-6">
+        <!-- Sticky Timer Header -->
+        <div class="glass-card sticky top-20 z-10 p-5 rounded-2xl border border-warm-borderLight dark:border-warm-borderDark flex justify-between items-center bg-white/90 dark:bg-warm-dark/90 backdrop-blur-md shadow-sm">
+          <div>
+            <h2 class="font-bold font-display text-lg text-neutral-900 dark:text-white" x-text="activeQuiz?.title"></h2>
+            <p class="text-xs text-neutral-400 mt-1">Question <span class="font-bold text-neutral-900 dark:text-white" x-text="currentQuestionIndex + 1"></span> of <span x-text="activeQuiz?.questions?.length"></span></p>
+          </div>
+          <div class="px-3.5 py-1.5 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30 rounded-xl font-mono text-sm font-bold flex items-center space-x-1.5">
+            <span class="animate-pulse h-2 w-2 rounded-full bg-rose-500"></span>
+            <span x-text="formatTime(quizTimer)"></span>
+          </div>
+        </div>
+
+        <template x-if="activeQuiz && activeQuiz.questions && activeQuiz.questions[currentQuestionIndex]">
+          <div class="glass-card p-8 rounded-3xl border border-warm-borderLight dark:border-warm-borderDark flex flex-col justify-between min-h-[420px] transition-all">
+            <div>
+              <h3 class="text-xl font-bold font-display text-neutral-900 dark:text-white leading-snug mb-8" x-text="activeQuiz.questions[currentQuestionIndex].text"></h3>
+              
+              <!-- Options / Input Area -->
+              <div class="space-y-3 mt-8">
+                <!-- If MCQ (multiple options) -->
+                <template x-if="activeQuiz.questions[currentQuestionIndex].options.length > 1">
+                  <div class="space-y-3">
+                    <template x-for="option in activeQuiz.questions[currentQuestionIndex].options" :key="option.id">
+                      <label class="flex items-center p-4 border rounded-xl cursor-pointer hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark/40 transition-all duration-150 border-warm-borderLight dark:border-warm-borderDark"
+                        :class="{'border-amber-500 bg-amber-500/5 dark:border-amber-400 dark:bg-amber-400/5': answers[activeQuiz.questions[currentQuestionIndex].id] === option.id}">
+                        <input type="radio" :name="'q_'+activeQuiz.questions[currentQuestionIndex].id" :value="option.id" x-model="answers[activeQuiz.questions[currentQuestionIndex].id]" class="w-4 h-4 text-amber-600 border-warm-borderLight focus:ring-amber-500 focus:ring-offset-0 bg-transparent">
+                        <span class="ml-3 text-sm font-medium text-neutral-700 dark:text-neutral-300" x-text="option.text"></span>
+                      </label>
+                    </template>
+                  </div>
+                </template>
+
+                <!-- If Fill-in-the-Blanks (single option from AI) -->
+                <template x-if="activeQuiz.questions[currentQuestionIndex].options.length === 1">
+                  <div>
+                    <input type="text" x-model="answers[activeQuiz.questions[currentQuestionIndex].id]" placeholder="Type your answer here..." class="w-full px-5 py-4 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 outline-none text-base transition-all dark:text-white">
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between mt-12 pt-6 border-t border-warm-borderLight/60 dark:border-warm-borderDark/60">
+              <button @click="currentQuestionIndex--" :disabled="currentQuestionIndex === 0" class="px-4 py-2 text-xs font-bold border border-warm-borderLight dark:border-warm-borderDark rounded-xl hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                &larr; Previous
+              </button>
+              
+              <button x-show="currentQuestionIndex < (activeQuiz.questions.length - 1)" @click="currentQuestionIndex++" class="px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl text-xs font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors">
+                Next &rarr;
+              </button>
+
+              <button x-show="currentQuestionIndex === (activeQuiz.questions.length - 1)" @click="submitQuiz" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 transition-all duration-150 active:scale-[0.98]">
+                Submit Exam
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+      <!-- LEADERBOARD VIEW -->
+      <div x-show="view === 'leaderboard'" x-cloak class="max-w-3xl mx-auto w-full space-y-8" id="leaderboard-container">
+        
+        <button @click="view = (user && user.role === 'faculty') ? 'faculty_dashboard' : ((user && user.role === 'student') ? 'student_dashboard' : 'student_class')" class="px-4 py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 rounded-full text-xs font-bold hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors flex items-center w-fit space-x-1">
+          <span x-text="(user && user.role === 'guest') ? '&larr; Back to Class' : '&larr; Back to dashboard'"></span>
+        </button>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-warm-borderLight dark:border-warm-borderDark pb-6 gap-4">
+          <div>
+            <h1 class="text-3xl font-extrabold font-display text-neutral-900 dark:text-white">Live Leaderboard</h1>
+            <p class="text-sm text-neutral-500 mt-1" x-text="activeQuiz?.title"></p>
+          </div>
+          <button @click="downloadLeaderboard" class="px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl text-xs font-bold shadow-md hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all flex items-center space-x-2 w-fit" id="download-btn">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Save as Image</span>
+          </button>
+        </div>
+
+        <div class="glass-card rounded-3xl border border-warm-borderLight dark:border-warm-borderDark overflow-x-auto">
+          <table class="w-full min-w-[500px] text-left border-collapse">
+            <thead>
+              <tr class="bg-warm-mutedLight dark:bg-warm-mutedDark/40 border-b border-warm-borderLight dark:border-warm-borderDark">
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Rank</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Student Name</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Score</th>
+                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 text-right">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(entry, index) in leaderboardData" :key="index">
+                <tr class="border-b border-warm-borderLight/40 dark:border-warm-borderDark/40 hover:bg-white/40 dark:hover:bg-warm-mutedDark/20 transition-colors">
+                  <td class="py-4 px-6 font-bold font-display" :class="{'text-amber-500 text-xl': index === 0, 'text-neutral-600 dark:text-neutral-300': index > 0}">
+                    #<span x-text="index + 1"></span>
+                  </td>
+                  <td class="py-4 px-6 font-semibold text-neutral-900 dark:text-white" x-text="entry.name"></td>
+                  <td class="py-4 px-6">
+                    <span class="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-bold" x-text="entry.score + ' / ' + entry.maxScore"></span>
+                  </td>
+                  <td class="py-4 px-6 text-sm text-neutral-500 text-right" x-text="new Date(entry.completedAt).toLocaleTimeString()"></td>
+                </tr>
+              </template>
+              <tr x-show="leaderboardData.length === 0">
+                <td colspan="4" class="py-12 text-center text-neutral-500 dark:text-neutral-400 border-t border-warm-borderLight dark:border-warm-borderDark">
+                  No submissions yet. Waiting for students...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="flex justify-center mt-8">
+          <button @click="view = (user?.role === 'faculty' ? 'faculty_dashboard' : 'student_dashboard')" class="px-5 py-2.5 bg-warm-mutedLight dark:bg-warm-mutedDark border border-warm-borderLight dark:border-warm-borderDark rounded-xl text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:bg-warm-borderLight dark:hover:bg-warm-borderDark transition-colors">
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+
+      <!-- MODALS -->
+      <!-- Create Class Modal -->
+      <div x-show="openCreateClassModal" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-neutral-950/40 backdrop-blur-sm" x-cloak>
+        <div @click.outside="openCreateClassModal = false" class="bg-warm-light dark:bg-warm-dark rounded-3xl p-6 w-full max-w-md shadow-2xl border border-warm-borderLight dark:border-warm-borderDark">
+          <h3 class="text-xl font-bold font-display text-neutral-900 dark:text-white mb-2">Create Classroom</h3>
+          <p class="text-xs text-neutral-400 mb-6">Group your students and assignments under a class.</p>
+          <form @submit.prevent="createClass" class="space-y-4">
+            <input type="text" x-model="newClassName" placeholder="e.g. CS 101 — Data Structures" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 outline-none text-sm transition-all" required>
+            <div class="flex justify-end space-x-2 pt-2">
+              <button type="button" @click="openCreateClassModal = false" class="px-4 py-2 text-xs font-bold hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark rounded-xl transition-colors">Cancel</button>
+              <button type="submit" class="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl text-xs font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors">Create Class</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Add Subject Modal -->
+      <div x-show="openAddSubjectModal" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-neutral-950/40 backdrop-blur-sm" x-cloak>
+        <div @click.outside="openAddSubjectModal = false" class="bg-warm-light dark:bg-warm-dark rounded-3xl p-6 w-full max-w-md shadow-2xl border border-warm-borderLight dark:border-warm-borderDark">
+          <h3 class="text-xl font-bold font-display text-neutral-900 dark:text-white mb-2">Add Subject Topic</h3>
+          <p class="text-xs text-neutral-400 mb-6">Create subjects or chapters to organize your lectures and papers.</p>
+          <form @submit.prevent="createSubject" class="space-y-4">
+            <input type="text" x-model="newSubjectName" placeholder="e.g. Chapter 3: Quantum Mechanics" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 outline-none text-sm transition-all" required>
+            <div class="flex justify-end space-x-2 pt-2">
+              <button type="button" @click="openAddSubjectModal = false" class="px-4 py-2 text-xs font-bold hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark rounded-xl transition-colors">Cancel</button>
+              <button type="submit" class="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl text-xs font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors">Add Subject</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Join Class Modal -->
+      <div x-show="openJoinClassModal" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-neutral-950/40 backdrop-blur-sm" x-cloak>
+        <div @click.outside="openJoinClassModal = false" class="bg-warm-light dark:bg-warm-dark rounded-3xl p-6 w-full max-w-md shadow-2xl border border-warm-borderLight dark:border-warm-borderDark">
+          <h3 class="text-xl font-bold font-display text-neutral-900 dark:text-white mb-2">Join Classroom</h3>
+          <p class="text-xs text-neutral-400 mb-6">Enter the 6-character alphanumeric code provided by your teacher.</p>
+          <form @submit.prevent="joinClassFaculty" class="space-y-4">
+            <input type="text" x-model="joinCode" placeholder="Enter Join Code" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark uppercase font-mono tracking-widest text-center focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 outline-none text-sm transition-all" required>
+            <div class="flex justify-end space-x-2 pt-2">
+              <button type="button" @click="openJoinClassModal = false" class="px-4 py-2 text-xs font-bold hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark rounded-xl transition-colors">Cancel</button>
+              <button type="submit" class="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl text-xs font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors">Join Classroom</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Generate AI Quiz Modal -->
+      <div x-show="openGenerateModal" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-neutral-950/40 backdrop-blur-sm" x-cloak>
+        <div @click.outside="openGenerateModal = false" class="bg-warm-light dark:bg-warm-dark rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-warm-borderLight dark:border-warm-borderDark">
+          <h3 class="text-xl font-bold font-display text-neutral-900 dark:text-white mb-1">Generate AI Quiz</h3>
+          <p class="text-xs text-neutral-400 mb-6">Upload a study paper PDF. AI will extract and structure a premium multiple-choice test.</p>
+          
+          <!-- If not generating, show form -->
+          <template x-if="!generationStatus">
+            <form @submit.prevent="generateQuiz" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Quiz Title</label>
+                <input type="text" x-model="generateForm.title" placeholder="e.g. Weekly Quiz on Chapter 3" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 outline-none text-sm transition-all" required>
+              </div>
+              
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Timer (minutes)</label>
+                <input type="number" min="1" x-model="generateForm.timer_minutes" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 outline-none text-sm transition-all" required>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Quiz Style</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <div @click="generateForm.style = 'mcq'" :class="generateForm.style === 'mcq' ? 'border-amber-500 bg-amber-500/10' : 'border-warm-borderLight dark:border-warm-borderDark'" class="cursor-pointer p-3 text-center border rounded-xl hover:border-amber-500 transition-colors">
+                    <span class="text-xs font-bold dark:text-white">MCQs</span>
+                  </div>
+                  <div @click="generateForm.style = 'fill_blanks'" :class="generateForm.style === 'fill_blanks' ? 'border-amber-500 bg-amber-500/10' : 'border-warm-borderLight dark:border-warm-borderDark'" class="cursor-pointer p-3 text-center border rounded-xl hover:border-amber-500 transition-colors">
+                    <span class="text-xs font-bold dark:text-white">Fill in Blanks</span>
+                  </div>
+                  <div @click="generateForm.style = 'hybrid'" :class="generateForm.style === 'hybrid' ? 'border-amber-500 bg-amber-500/10' : 'border-warm-borderLight dark:border-warm-borderDark'" class="cursor-pointer p-3 text-center border rounded-xl hover:border-amber-500 transition-colors">
+                    <span class="text-xs font-bold dark:text-white">Hybrid</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Number of Questions</label>
+                <div class="flex flex-wrap gap-2">
+                  <template x-for="count in [5, 10, 15, 20, 25, 30]">
+                    <button type="button" 
+                            @click="generateForm.question_count = count"
+                            :disabled="generateForm.timer_minutes < 10 && count > 20"
+                            :class="{
+                              'bg-amber-500 text-white border-amber-500': generateForm.question_count === count,
+                              'bg-transparent border-warm-borderLight dark:border-warm-borderDark dark:text-white hover:border-amber-500': generateForm.question_count !== count && !(generateForm.timer_minutes < 10 && count > 20),
+                              'opacity-40 cursor-not-allowed border-warm-borderLight dark:border-warm-borderDark': generateForm.timer_minutes < 10 && count > 20
+                            }"
+                            class="px-4 py-2 text-xs font-bold border rounded-xl transition-colors">
+                      <span x-text="count"></span>
+                    </button>
+                  </template>
+                </div>
+                <p x-show="generateForm.timer_minutes < 10" class="text-[10px] text-amber-500 mt-1">* Max 20 questions for timers under 10 minutes</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Lecture Material (PDF, DOCX, TXT up to 100MB)</label>
+                <div class="mt-1 flex justify-center px-6 pt-6 pb-6 border-2 border-dashed border-warm-borderLight dark:border-warm-borderDark hover:border-amber-400/40 dark:hover:border-amber-400/40 rounded-2xl hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark/40 transition-colors relative cursor-pointer">
+                  <div class="space-y-1.5 text-center pointer-events-none">
+                    <svg class="mx-auto h-10 w-10 text-neutral-300 dark:text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    <div class="text-xs text-neutral-600 dark:text-neutral-400 font-medium">
+                      <span x-text="generateFiles.length > 0 ? generateFiles.length + ' file(s) selected' : 'Choose files (PDF, DOCX, TXT)'"></span>
+                    </div>
+                  </div>
+                  <input type="file" multiple accept=".pdf,.docx,.txt" @change="handleFileUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required>
+                </div>
+              </div>
+
+              <div class="flex justify-end space-x-2 pt-4">
+                <button type="button" @click="openGenerateModal = false" class="px-5 py-2.5 text-xs font-bold hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark rounded-xl transition-colors">Cancel</button>
+                <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 transition-all flex items-center justify-center space-x-2">
+                  <span>Generate Exam</span>
+                </button>
+              </div>
+            </form>
+          </template>
+
+          <!-- If generating, show progress UI -->
+          <template x-if="generationStatus">
+            <div class="py-8 flex flex-col items-center justify-center text-center space-y-5">
+              <!-- Uploading / Processing state -->
+              <template x-if="generationStatus === 'uploading' || generationStatus === 'processing'">
+                <div class="space-y-4 flex flex-col items-center">
+                  <div class="relative w-16 h-16 flex items-center justify-center">
+                    <!-- Spinning ring -->
+                    <div class="absolute inset-0 rounded-full border-4 border-amber-500/20 border-t-amber-500 animate-spin"></div>
+                    <!-- Brain icon inside -->
+                    <svg class="w-6 h-6 text-amber-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                  </div>
+                  <h4 class="font-bold text-lg text-neutral-900 dark:text-white" x-text="generationStatus === 'uploading' ? 'Uploading PDF...' : 'AI Generating Quiz...'"></h4>
+                  <p class="text-xs text-neutral-400 max-w-sm" x-text="generationProgressText"></p>
+                </div>
+              </template>
+
+              <!-- Completed state -->
+              <template x-if="generationStatus === 'completed'">
+                <div class="space-y-4 flex flex-col items-center">
+                  <div class="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 animate-bounce">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                  </div>
+                  <h4 class="font-bold text-lg text-neutral-900 dark:text-white">Quiz Generated!</h4>
+                  <p class="text-xs text-neutral-400" x-text="generationProgressText"></p>
+                </div>
+              </template>
+
+              <!-- Failed state -->
+              <template x-if="generationStatus === 'failed'">
+                <div class="space-y-4 flex flex-col items-center">
+                  <div class="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  </div>
+                  <h4 class="font-bold text-lg text-neutral-900 dark:text-white">Generation Failed</h4>
+                  <p class="text-xs text-rose-500 px-4" x-text="generationError"></p>
+                  <div class="flex space-x-2 pt-2">
+                    <button type="button" @click="generationStatus = null" class="px-4 py-2 border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark hover:bg-warm-borderLight dark:hover:bg-warm-borderDark rounded-xl text-xs font-bold transition-colors">
+                      Try Again
+                    </button>
+                    <button type="button" @click="openGenerateModal = false; generationStatus = null;" class="px-4 py-2 text-xs font-bold hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark rounded-xl transition-colors">
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Edit Quiz Modal -->
+      <div x-show="openEditQuizModal" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-neutral-950/40 backdrop-blur-sm" x-cloak>
+        <div @click.outside="openEditQuizModal = false" class="bg-warm-light dark:bg-warm-dark rounded-3xl p-6 w-full max-w-md shadow-2xl border border-warm-borderLight dark:border-warm-borderDark">
+          <h3 class="text-xl font-bold font-display text-neutral-900 dark:text-white mb-2">Edit Quiz</h3>
+          <form @submit.prevent="updateQuiz" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Title</label>
+              <input type="text" x-model="editQuizForm.title" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 outline-none text-sm transition-all" required>
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Timer (minutes)</label>
+              <input type="number" min="1" x-model="editQuizForm.timer_minutes" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 outline-none text-sm transition-all" required>
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Status</label>
+              <select x-model="editQuizForm.status" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 outline-none text-sm transition-all">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+              <button type="button" @click="openEditQuizModal = false" class="px-4 py-2 text-xs font-bold hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark rounded-xl transition-colors">Cancel</button>
+              <button type="submit" class="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl text-xs font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Copy Quiz Modal -->
+      <div x-show="openCopyQuizModal" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-neutral-950/40 backdrop-blur-sm" x-cloak>
+        <div @click.outside="openCopyQuizModal = false" class="bg-warm-light dark:bg-warm-dark rounded-3xl p-6 w-full max-w-md shadow-2xl border border-warm-borderLight dark:border-warm-borderDark">
+          <h3 class="text-xl font-bold font-display text-neutral-900 dark:text-white mb-2">Copy Quiz</h3>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400 mb-4">Duplicate <span class="font-bold text-neutral-900 dark:text-white" x-text="quizToCopy?.title"></span> to another class.</p>
+          <form @submit.prevent="copyQuiz" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Select Target Class</label>
+              <select x-model="copyTargetClassId" class="w-full px-4 py-2.5 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all" required>
+                <option value="" disabled>-- Select a class --</option>
+                <template x-for="cls in classes" :key="cls.id">
+                  <option :value="cls.id" x-text="cls.name + ' (' + cls.join_code + ')'"></option>
+                </template>
+              </select>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+              <button type="button" @click="openCopyQuizModal = false" class="px-4 py-2 text-xs font-bold hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark rounded-xl transition-colors">Cancel</button>
+              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors">Copy Quiz</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Admin Login Modal (Hidden) -->
+      <div x-show="openAdminModal" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-neutral-950/60 backdrop-blur-md" x-cloak>
+        <div @click.outside="openAdminModal = false" class="bg-neutral-900 rounded-3xl p-8 w-full max-w-sm shadow-2xl border border-neutral-800 relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-rose-600"></div>
+          <div class="flex items-center space-x-3 mb-6">
+            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            <h3 class="text-xl font-bold font-display text-white">Admin Access</h3>
+          </div>
+          <form @submit.prevent="adminLogin" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Username</label>
+              <input type="text" x-model="adminForm.username" class="w-full px-4 py-2.5 rounded-xl border border-neutral-700 bg-neutral-800 text-white focus:ring-2 focus:ring-red-500 outline-none text-sm transition-all" required>
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Password</label>
+              <div class="relative">
+                <input :type="showAdminPassword ? 'text' : 'password'" x-model="adminForm.password" class="w-full px-4 py-2.5 rounded-xl border border-neutral-700 bg-neutral-800 text-white focus:ring-2 focus:ring-red-500 outline-none text-sm transition-all pr-10" required>
+                <button type="button" @click="showAdminPassword = !showAdminPassword" class="absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-400 hover:text-white">
+                  <svg x-show="!showAdminPassword" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                  <svg x-show="showAdminPassword" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                </button>
+              </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-4">
+              <button type="button" @click="openAdminModal = false" class="px-5 py-2.5 text-xs font-bold text-neutral-300 hover:bg-neutral-800 rounded-xl transition-colors">Cancel</button>
+              <button type="submit" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-md shadow-red-600/20 transition-all">Authorize</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-warm-borderLight dark:border-warm-borderDark py-6 bg-warm-light dark:bg-warm-dark transition-colors duration-300">
+      <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 font-semibold gap-3">
+        <span>© 2026 AI QuizGen Platform. All rights reserved.</span>
+        <div class="flex space-x-4">
+          <a href="#" class="hover:text-amber-500 dark:hover:text-amber-400">Terms</a>
+          <a href="#" class="hover:text-amber-500 dark:hover:text-amber-400">Security Policy</a>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="./src/main.js"></script>
+
+    <!-- Notification Toast Container -->
+    <div class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+      <template x-for="note in notifications" :key="note.id">
+        <div x-show="true" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="pointer-events-auto bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-5 py-3 rounded-xl shadow-lg flex items-center space-x-3 min-w-[250px] max-w-sm border border-neutral-800 dark:border-neutral-200">
+          <svg x-show="note.type === 'error'" class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <svg x-show="note.type === 'success'" class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <svg x-show="note.type === 'info'" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span class="text-sm font-semibold" x-text="note.message"></span>
+        </div>
+      </template>
+    </div>
+
+  </body>
+</html>
