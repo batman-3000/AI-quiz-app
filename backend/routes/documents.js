@@ -54,13 +54,8 @@ router.post('/upload', requireAuth, requireRole('faculty'), upload.array('docume
         );
         await insertDoc.run(documentId, subject_id, req.user.id, fileNames, 'in-memory', 'processing');
 
-        res.status(202).json({ 
-            message: 'Documents uploaded successfully, AI is processing it.',
-            document_id: documentId
-        });
-
-        // Pass file objects directly to processing function
-        processDocument(documentId, req.files, {
+        // Wait for processing to finish before responding so Vercel doesn't freeze the lambda!
+        await processDocument(documentId, req.files, {
             subject_id, 
             timer_minutes: timer_minutes || 30, 
             title: title || 'Generated Quiz', 
@@ -68,6 +63,11 @@ router.post('/upload', requireAuth, requireRole('faculty'), upload.array('docume
             created_by: req.user.id,
             style: style || 'mcq',
             question_count: parseInt(question_count) || 10
+        });
+
+        res.status(202).json({ 
+            message: 'Documents uploaded successfully, AI has processed it.',
+            document_id: documentId
         });
 
     } catch (err) {
