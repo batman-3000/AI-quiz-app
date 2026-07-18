@@ -107,17 +107,17 @@ async function processDocument(documentId, files, quizConfig) {
         let prompt = `You are an expert AI quiz generator.
 CRITICAL INSTRUCTION: You MUST extract facts EXACTLY from the provided text below.
 DO NOT use any external knowledge. DO NOT hallucinate. If the text does not contain enough information, use what is there. Every fact MUST be directly traceable to the text provided.
-You MUST output ONLY a JSON array of question objects.
+You MUST output a valid JSON object containing a "questions" array.
 `;
         
         if (quizConfig.style === 'fill_blanks') {
-            prompt += `Generate EXACTLY ${totalCount} Fill-in-the-Blanks questions.\nFormat: [{"question":"The capital of France is _______.","options":["Paris"],"correct_index":0,"explanation":"..."}]\n\n`;
+            prompt += `Generate EXACTLY ${totalCount} Fill-in-the-Blanks questions.\nFormat: {"questions": [{"question":"The capital of France is _______.","options":["Paris"],"correct_index":0,"explanation":"..."}]}\n\n`;
         } else if (quizConfig.style === 'hybrid') {
             const mcqCount = Math.max(1, Math.round(totalCount * 0.4));
             const fillCount = totalCount - mcqCount;
-            prompt += `Generate EXACTLY ${totalCount} questions total: EXACTLY ${mcqCount} Multiple Choice questions (4 options each) AND EXACTLY ${fillCount} Fill-in-the-Blanks questions (1 option containing the exact answer).\nFormat: [{"question":"What is...?","options":["A","B","C","D"],"correct_index":1,"explanation":"Because..."}, {"question":"The capital of France is _______.","options":["Paris"],"correct_index":0,"explanation":"..."}]\n\n`;
+            prompt += `Generate EXACTLY ${totalCount} questions total: EXACTLY ${mcqCount} Multiple Choice questions (4 options each) AND EXACTLY ${fillCount} Fill-in-the-Blanks questions (1 option containing the exact answer).\nFormat: {"questions": [{"question":"What is...?","options":["A","B","C","D"],"correct_index":1,"explanation":"Because..."}, {"question":"The capital of France is _______.","options":["Paris"],"correct_index":0,"explanation":"..."}]}\n\n`;
         } else {
-            prompt += `Generate EXACTLY ${totalCount} Multiple Choice questions (4 options each).\nFormat: [{"question":"What is...?","options":["A","B","C","D"],"correct_index":1,"explanation":"Because..."}]\n\n`;
+            prompt += `Generate EXACTLY ${totalCount} Multiple Choice questions (4 options each).\nFormat: {"questions": [{"question":"What is...?","options":["A","B","C","D"],"correct_index":1,"explanation":"Because..."}]}\n\n`;
         }
         prompt += 'Text to extract from:\n' + truncatedText;
 
@@ -125,31 +125,25 @@ You MUST output ONLY a JSON array of question objects.
             model: process.env.AI_MODEL || 'llama-3.1-8b-instant',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.3,
+            response_format: { type: "json_object" }
         });
 
         let rawOutput = response.choices[0].message.content.trim();
         
-        // Clean up markdown code blocks if the model wrapped it
-        rawOutput = rawOutput.replace(/```json/g, '').replace(/```/g, '');
-
-        // Extract substring between first [ and last ]
-        const firstBracket = rawOutput.indexOf('[');
-        const lastBracket = rawOutput.lastIndexOf(']');
-        
         let generatedQuestions;
-        if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-            const jsonStr = rawOutput.substring(firstBracket, lastBracket + 1);
-            generatedQuestions = JSON.parse(jsonStr);
-        } else {
-            // Check if it's an object with { ... }
+        try {
+            const parsed = JSON.parse(rawOutput);
+            generatedQuestions = parsed.questions || parsed.quiz || [];
+        } catch (parseError) {
+            // Fallback for markdown-wrapped JSON
+            rawOutput = rawOutput.replace(/```json/g, '').replace(/```/g, '').trim();
             const firstBrace = rawOutput.indexOf('{');
             const lastBrace = rawOutput.lastIndexOf('}');
             if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                const jsonStr = rawOutput.substring(firstBrace, lastBrace + 1);
-                const parsed = JSON.parse(jsonStr);
-                generatedQuestions = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.quiz || []);
+                const parsed = JSON.parse(rawOutput.substring(firstBrace, lastBrace + 1));
+                generatedQuestions = parsed.questions || parsed.quiz || [];
             } else {
-                throw new Error("Could not find any valid JSON brackets or braces in AI response");
+                throw new Error("Could not parse JSON from AI response: " + parseError.message);
             }
         }
 
