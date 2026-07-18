@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { PDFParse } = require('pdf-parse');
+const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
 const crypto = require('crypto');
 const OpenAI = require('openai');
@@ -84,8 +84,7 @@ async function processDocument(documentId, files, quizConfig) {
             const ext = path.extname(file.originalname).toLowerCase();
             try {
                 if (ext === '.pdf') {
-                    const parser = new PDFParse({ data: file.buffer });
-                    const data = await parser.getText();
+                    const data = await pdf(file.buffer);
                     combinedText += data.text + '\n\n';
                 } else if (ext === '.txt') {
                     combinedText += file.buffer.toString('utf8') + '\n\n';
@@ -157,6 +156,8 @@ You MUST output ONLY a JSON array of question objects.
         if (!Array.isArray(generatedQuestions)) {
             throw new Error("AI response did not parse into a list of questions");
         }
+
+        const joinCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
         const transaction = db.transaction(async (txDb) => {
             const quizId = crypto.randomUUID();
