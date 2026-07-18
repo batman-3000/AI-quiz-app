@@ -143,7 +143,8 @@ async function initDB() {
             CREATE TABLE IF NOT EXISTS quiz_attempts (
                 id TEXT PRIMARY KEY,
                 quiz_id TEXT NOT NULL,
-                student_id TEXT NOT NULL,
+                student_id TEXT,
+                student_token TEXT,
                 student_name TEXT NOT NULL,
                 started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 submitted_at TIMESTAMP,
@@ -153,6 +154,9 @@ async function initDB() {
                 FOREIGN KEY(quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
             );
         `);
+
+        try { await db.query('ALTER TABLE quiz_attempts ADD COLUMN student_token TEXT'); } catch(e) {}
+        try { await db.query('ALTER TABLE quiz_attempts ALTER COLUMN student_id DROP NOT NULL'); } catch(e) {}
 
         // Seed admin user
         const { rows } = await db.query('SELECT id FROM users WHERE role = $1', ['admin']);

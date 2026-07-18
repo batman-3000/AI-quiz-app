@@ -113,9 +113,7 @@ You MUST output a valid JSON object containing a "questions" array.
         if (quizConfig.style === 'fill_blanks') {
             prompt += `Generate EXACTLY ${totalCount} Fill-in-the-Blanks questions.\nFormat: {"questions": [{"question":"The capital of France is _______.","options":["Paris"],"correct_index":0,"explanation":"..."}]}\n\n`;
         } else if (quizConfig.style === 'hybrid') {
-            const mcqCount = Math.max(1, Math.round(totalCount * 0.4));
-            const fillCount = totalCount - mcqCount;
-            prompt += `Generate EXACTLY ${totalCount} questions total: EXACTLY ${mcqCount} Multiple Choice questions (4 options each) AND EXACTLY ${fillCount} Fill-in-the-Blanks questions (1 option containing the exact answer).\nFormat: {"questions": [{"question":"What is...?","options":["A","B","C","D"],"correct_index":1,"explanation":"Because..."}, {"question":"The capital of France is _______.","options":["Paris"],"correct_index":0,"explanation":"..."}]}\n\n`;
+            prompt += `Generate EXACTLY ${totalCount} questions total. You MUST completely randomize and jumble the order of the question styles! Randomly mix Multiple Choice questions (4 options each), True/False questions (2 options), and Fill-in-the-Blanks questions (1 option containing the exact answer).\nFormat: {"questions": [{"question":"The sky is blue.","options":["True","False"],"correct_index":0,"explanation":"..."}, {"question":"What is...?","options":["A","B","C","D"],"correct_index":1,"explanation":"Because..."}, {"question":"The capital of France is _______.","options":["Paris"],"correct_index":0,"explanation":"..."}]}\n\n`;
         } else {
             prompt += `Generate EXACTLY ${totalCount} Multiple Choice questions (4 options each).\nFormat: {"questions": [{"question":"What is...?","options":["A","B","C","D"],"correct_index":1,"explanation":"Because..."}]}\n\n`;
         }
@@ -149,6 +147,13 @@ You MUST output a valid JSON object containing a "questions" array.
 
         if (!Array.isArray(generatedQuestions)) {
             throw new Error("AI response did not parse into a list of questions");
+        }
+
+        if (quizConfig.style === 'hybrid') {
+            for (let i = generatedQuestions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [generatedQuestions[i], generatedQuestions[j]] = [generatedQuestions[j], generatedQuestions[i]];
+            }
         }
 
         const joinCode = crypto.randomBytes(3).toString('hex').toUpperCase();

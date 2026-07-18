@@ -95,8 +95,8 @@ router.post('/:quizId/submit', async (req, res) => {
         // Save attempt to database
         const attemptId = crypto.randomUUID();
         await db.prepare(`
-            INSERT INTO quiz_attempts (id, quiz_id, student_token, student_name, score, max_score)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO quiz_attempts (id, quiz_id, student_token, student_name, score, max_score, submitted_at, status)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'submitted')
         `).run(attemptId, quizId, studentToken, studentName, score, questions.length);
 
         res.json({ score, maxScore: questions.length });
@@ -112,10 +112,10 @@ router.get('/:quizId/leaderboard', async (req, res) => {
     
     try {
         const attempts = await db.prepare(`
-            SELECT student_name as name, score, max_score as maxScore, completed_at as completedAt
+            SELECT student_name as name, score, max_score as maxScore, submitted_at as completedAt
             FROM quiz_attempts
-            WHERE quiz_id = ?
-            ORDER BY score DESC, completed_at ASC
+            WHERE quiz_id = ? AND status = 'submitted'
+            ORDER BY score DESC, submitted_at ASC
         `).all(quizId);
         
         res.json({ leaderboard: attempts });
