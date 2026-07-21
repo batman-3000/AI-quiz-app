@@ -523,9 +523,15 @@
                 <template x-if="activeQuiz.questions[currentQuestionIndex].options.length > 1">
                   <div class="space-y-3">
                     <template x-for="option in activeQuiz.questions[currentQuestionIndex].options" :key="option.id">
-                      <label class="flex items-center p-4 border rounded-xl cursor-pointer hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark/40 transition-all duration-150 border-warm-borderLight dark:border-warm-borderDark"
-                        :class="{'border-amber-500 bg-amber-500/5 dark:border-amber-400 dark:bg-amber-400/5': answers[activeQuiz.questions[currentQuestionIndex].id] === option.id}">
-                        <input type="radio" :name="'q_'+activeQuiz.questions[currentQuestionIndex].id" :value="option.id" x-model="answers[activeQuiz.questions[currentQuestionIndex].id]" class="w-4 h-4 text-amber-600 border-warm-borderLight focus:ring-amber-500 focus:ring-offset-0 bg-transparent">
+                      <label class="flex items-center p-4 border rounded-xl cursor-pointer transition-all duration-150 border-warm-borderLight dark:border-warm-borderDark"
+                        :class="{
+                          'hover:bg-warm-mutedLight dark:hover:bg-warm-mutedDark/40': !isChecking,
+                          'border-amber-500 bg-amber-500/5 dark:border-amber-400 dark:bg-amber-400/5': !isChecking && answers[activeQuiz.questions[currentQuestionIndex].id] === option.id,
+                          'border-emerald-500 bg-emerald-500/10 dark:border-emerald-400 dark:bg-emerald-400/10': isChecking && correctAnswers[activeQuiz.questions[currentQuestionIndex].id]?.id === option.id,
+                          'border-rose-500 bg-rose-500/10 dark:border-rose-400 dark:bg-rose-400/10': isChecking && answers[activeQuiz.questions[currentQuestionIndex].id] === option.id && correctAnswers[activeQuiz.questions[currentQuestionIndex].id]?.id !== option.id,
+                          'opacity-50 grayscale': isChecking && answers[activeQuiz.questions[currentQuestionIndex].id] !== option.id && correctAnswers[activeQuiz.questions[currentQuestionIndex].id]?.id !== option.id
+                        }">
+                        <input type="radio" :name="'q_'+activeQuiz.questions[currentQuestionIndex].id" :value="option.id" x-model="answers[activeQuiz.questions[currentQuestionIndex].id]" :disabled="isChecking" class="w-4 h-4 text-amber-600 border-warm-borderLight focus:ring-amber-500 focus:ring-offset-0 bg-transparent disabled:opacity-50">
                         <span class="ml-3 text-sm font-medium text-neutral-700 dark:text-neutral-300" x-text="option.text"></span>
                       </label>
                     </template>
@@ -535,7 +541,18 @@
                 <!-- If Fill-in-the-Blanks (single option from AI) -->
                 <template x-if="activeQuiz.questions[currentQuestionIndex].options.length === 1">
                   <div>
-                    <input type="text" x-model="answers[activeQuiz.questions[currentQuestionIndex].id]" placeholder="Type your answer here..." class="w-full px-5 py-4 rounded-xl border border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500 outline-none text-base transition-all dark:text-white">
+                    <input type="text" x-model="answers[activeQuiz.questions[currentQuestionIndex].id]" placeholder="Type your answer here..." :disabled="isChecking"
+                      class="w-full px-5 py-4 rounded-xl border outline-none text-base transition-all dark:text-white"
+                      :class="{
+                        'border-warm-borderLight dark:border-warm-borderDark bg-warm-mutedLight dark:bg-warm-mutedDark focus:ring-2 focus:ring-amber-500': !isChecking,
+                        'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400': isChecking && (answers[activeQuiz.questions[currentQuestionIndex].id] || '').trim().toLowerCase() === (correctAnswers[activeQuiz.questions[currentQuestionIndex].id]?.text || '').trim().toLowerCase(),
+                        'border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-400': isChecking && (answers[activeQuiz.questions[currentQuestionIndex].id] || '').trim().toLowerCase() !== (correctAnswers[activeQuiz.questions[currentQuestionIndex].id]?.text || '').trim().toLowerCase()
+                      }">
+                    
+                    <div x-show="isChecking && (answers[activeQuiz.questions[currentQuestionIndex].id] || '').trim().toLowerCase() !== (correctAnswers[activeQuiz.questions[currentQuestionIndex].id]?.text || '').trim().toLowerCase()" class="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                      <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Correct Answer:</p>
+                      <p class="text-sm font-semibold text-emerald-800 dark:text-emerald-300 mt-1" x-text="correctAnswers[activeQuiz.questions[currentQuestionIndex].id]?.text"></p>
+                    </div>
                   </div>
                 </template>
               </div>
@@ -550,8 +567,11 @@
                 Next &rarr;
               </button>
 
-              <button x-show="currentQuestionIndex === (activeQuiz.questions.length - 1)" @click="submitQuiz" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 transition-all duration-150 active:scale-[0.98]">
+              <button x-show="currentQuestionIndex === (activeQuiz.questions.length - 1) && !isChecking" @click="submitQuiz" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 transition-all duration-150 active:scale-[0.98]">
                 Submit Exam
+              </button>
+              <button x-show="currentQuestionIndex === (activeQuiz.questions.length - 1) && isChecking" @click="view = 'leaderboard'; startLeaderboard(activeQuiz.id);" class="px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl text-xs font-bold hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors">
+                Back to Leaderboard
               </button>
             </div>
           </div>
@@ -575,8 +595,9 @@
           </button>
         </div>
 
-        <div class="glass-card rounded-3xl border border-warm-borderLight dark:border-warm-borderDark overflow-x-auto">
-          <table class="w-full min-w-[500px] text-left border-collapse">
+        <div class="glass-card rounded-3xl border border-warm-borderLight dark:border-warm-borderDark overflow-x-auto relative">
+          <div :class="{'max-h-[500px] overflow-hidden relative': !expandLeaderboard}">
+            <table class="w-full min-w-[500px] text-left border-collapse">
             <thead>
               <tr class="bg-warm-mutedLight dark:bg-warm-mutedDark/40 border-b border-warm-borderLight dark:border-warm-borderDark">
                 <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Rank</th>
@@ -605,9 +626,21 @@
               </tr>
             </tbody>
           </table>
+          <div x-show="!expandLeaderboard && leaderboardData.length > 7" class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-warm-light dark:from-warm-dark to-transparent pointer-events-none rounded-b-3xl"></div>
+        </div>
+
+        <div x-show="leaderboardData.length > 7" class="flex justify-center -mt-4 relative z-10">
+          <button @click="expandLeaderboard = !expandLeaderboard" class="p-2 bg-white dark:bg-warm-dark border border-warm-borderLight dark:border-warm-borderDark rounded-full shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+            <svg x-show="!expandLeaderboard" class="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            <svg x-show="expandLeaderboard" class="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+          </button>
+        </div>
+
+        <div class="fixed bottom-10 left-1/2 transform -translate-x-1/2 z-50">
+          <button @click="checkQuiz" class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full font-bold shadow-lg shadow-emerald-500/30 transition-all active:scale-95" x-text="hasCheckedQuiz ? 'Check Again' : 'Check'"></button>
         </div>
         
-        <div class="flex justify-center mt-8">
+        <div class="flex justify-center mt-8 pb-20">
           <button @click="view = (user?.role === 'faculty' ? 'faculty_dashboard' : 'student_dashboard')" class="px-5 py-2.5 bg-warm-mutedLight dark:bg-warm-mutedDark border border-warm-borderLight dark:border-warm-borderDark rounded-xl text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:bg-warm-borderLight dark:hover:bg-warm-borderDark transition-colors">
             Return to Dashboard
           </button>

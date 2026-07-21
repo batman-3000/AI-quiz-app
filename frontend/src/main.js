@@ -21,7 +21,10 @@ document.addEventListener('alpine:init', function() {
             authForm: { name: '', username: '', email: '', password: '', role: 'faculty' },
             adminForm: { username: '', password: '' },
             studentGuest: { name: '', code: '' },
-            studentJoinError: null,
+            correctAnswers: {},
+            isChecking: false,
+            hasCheckedQuiz: false,
+            expandLeaderboard: false,
             showPassword: false,
             showAdminPassword: false,
 
@@ -515,6 +518,9 @@ document.addEventListener('alpine:init', function() {
                     this.activeQuiz = data;
                     this.currentQuestionIndex = 0;
                     this.answers = {};
+                    this.correctAnswers = {};
+                    this.isChecking = false;
+                    this.hasCheckedQuiz = false;
                     this.quizTimer = this.activeQuiz.timer_minutes * 60;
                     this.view = 'quiz_attempt';
                     
@@ -551,6 +557,7 @@ document.addEventListener('alpine:init', function() {
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error);
 
+                    this.correctAnswers = data.correctAnswers || {};
                     this.notify('Quiz Submitted! Your score: ' + data.score + ' / ' + data.maxScore);
                     this.startLeaderboard(this.activeQuiz.id);
                 } catch (e) {
@@ -562,6 +569,13 @@ document.addEventListener('alpine:init', function() {
                 this.view = 'leaderboard';
                 this.leaderboardData = await this.fetchLeaderboard(quizId);
                 
+                if (!this.activeQuiz || this.activeQuiz.id !== quizId) {
+                    try {
+                        const res = await fetch(API_BASE + '/play/' + quizId + '/start');
+                        if (res.ok) this.activeQuiz = await res.json();
+                    } catch(e) { console.error(e); }
+                }
+
                 var self = this;
                 if (this.leaderboardInterval) clearInterval(this.leaderboardInterval);
                 this.leaderboardInterval = setInterval(async function() {
@@ -571,6 +585,24 @@ document.addEventListener('alpine:init', function() {
                         clearInterval(self.leaderboardInterval);
                     }
                 }, 3000); // poll every 3 seconds
+            },
+
+            checkQuiz: async function() {
+                try {
+                    const res = await fetch(API_BASE + '/play/' + this.activeQuiz.id + '/answers');
+                    const data = await res.json();
+                    if(res.ok) {
+                        this.correctAnswers = data.correctAnswers;
+                    }
+                } catch(e) { console.error("Failed to fetch answers:", e); }
+                
+                this.isChecking = true;
+                this.hasCheckedQuiz = true;
+                this.currentQuestionIndex = 0;
+                this.view = 'quiz_attempt';
+                if (this.leaderboardInterval) {
+                    clearInterval(this.leaderboardInterval);
+                }
             },
 
             fetchLeaderboard: async function(quizId) {

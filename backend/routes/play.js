@@ -77,6 +77,7 @@ router.post('/:quizId/submit', async (req, res) => {
 
     try {
         let score = 0;
+        const correctAnswers = {};
         const questions = await db.prepare('SELECT id FROM questions WHERE quiz_id = ?').all(quizId);
         
         for (let q of questions) {
@@ -84,6 +85,7 @@ router.post('/:quizId/submit', async (req, res) => {
             const studentAns = answers[q.id];
             
             if (correctOpt) {
+                correctAnswers[q.id] = correctOpt;
                 if (studentAns === correctOpt.id) {
                     score++;
                 } else if (typeof studentAns === 'string' && studentAns.trim().toLowerCase() === correctOpt.text.trim().toLowerCase()) {
@@ -99,14 +101,33 @@ router.post('/:quizId/submit', async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'submitted')
         `).run(attemptId, quizId, studentToken, studentName, score, questions.length);
 
-        res.json({ score, maxScore: questions.length });
+        res.json({ score, maxScore: questions.length, correctAnswers });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// 4. Get Live Leaderboard
+// 4. Get Correct Answers for Review
+router.get('/:quizId/answers', async (req, res) => {
+    const { quizId } = req.params;
+    try {
+        const correctAnswers = {};
+        const questions = await db.prepare('SELECT id FROM questions WHERE quiz_id = ?').all(quizId);
+        for (let q of questions) {
+            const correctOpt = await db.prepare('SELECT id, text FROM options WHERE question_id = ? AND is_correct = 1').get(q.id);
+            if (correctOpt) {
+                correctAnswers[q.id] = correctOpt;
+            }
+        }
+        res.json({ correctAnswers });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// 5. Get Live Leaderboard
 router.get('/:quizId/leaderboard', async (req, res) => {
     const { quizId } = req.params;
     
